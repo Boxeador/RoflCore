@@ -2447,6 +2447,10 @@ bool InstanceMap::AddPlayerToMap(Player* player)
 		did = 71;
 		} else if (player->GetMapId() == 90) {
 		did = 29;
+		} else if (player->GetMapId() == 650) {
+		did = 15;
+		} else if (player->GetMapId() == 668) {
+		did = 15;
 	} else {
 		did = 80;
 	}

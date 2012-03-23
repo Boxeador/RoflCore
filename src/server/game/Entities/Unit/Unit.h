@@ -2153,7 +2153,7 @@ class Unit : public WorldObject
         bool canFly() const     { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_CAN_FLY); }
         bool IsFlying() const   { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_FLYING); }
         void SetFlying(bool apply);
-
+		void SetCanFly(bool apply);
         void RewardRage(uint32 damage, uint32 weaponSpeedHitFactor, bool attacker);
 
         virtual float GetFollowAngle() const { return static_cast<float>(M_PI/2); }

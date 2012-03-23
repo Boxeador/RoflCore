@@ -17057,6 +17057,14 @@ void Unit::BuildMovementPacket(ByteBuffer *data) const
         *data << (float)m_movementInfo.splineElevation;
 }
 
+void Unit::SetCanFly(bool apply)
+{
+    if (apply)
+        AddUnitMovementFlag(MOVEMENTFLAG_CAN_FLY);
+    else
+        RemoveUnitMovementFlag(MOVEMENTFLAG_CAN_FLY);
+}
+
 void Unit::SetFlying(bool apply)
 {
     if (apply)
