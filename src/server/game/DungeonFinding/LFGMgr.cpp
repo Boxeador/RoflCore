@@ -470,12 +470,23 @@ void LFGMgr::InitializeLockedDungeons(Player* player)
         if(level < 80)
             return;
 
-        if (dungeon->expansion == 2)
-            if (dungeon->difficulty == DUNGEON_DIFFICULTY_HEROIC)
-                requiredItemLevel = 160.0f;
-
         switch (dungeon->ID)
         {
+            case 205:                               // Heroic: Utgarde Tower
+            case 210:                               // Heroic: Culling of Strathholme
+            case 211:                               // Heroic: The Ocolus
+            case 212:                               // Heroic: Halls of Lightning
+            case 213:                               // Heroic: Halls of Stone
+            case 215:                               // Heroic: Drak'Tharon Keep
+            case 217:                               // Heroic: Gundrak
+            case 219:                               // Heroic: Ahn'Kahet - The old Kingdom
+            case 221:                               // Heroic: The Violet Hold
+            case 226:                               // Heroic: The Nexus
+            case 241:                               // Heroic: Azjol-Nerub
+            case 242:                               // Heroic: Utgarde Castle
+            case 262:                               // Heroic: Random WotLK Dungeon
+                requiredItemLevel = 160;
+                break;
             case 245:                               // Trial of the Champion
             case 251:                               // The Forge of Souls
             case 253:                               // Pit of Saron
