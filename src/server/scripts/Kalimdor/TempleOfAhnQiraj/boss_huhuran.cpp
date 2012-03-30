@@ -110,7 +110,7 @@ public:
             //NoxiousPoison_Timer
             if (NoxiousPoison_Timer <= diff)
             {
-                DoCast(me->getVictim(), SPELL_NOXIOUSPOISON);
+                //DoCast(me->getVictim(), SPELL_NOXIOUSPOISON);
                 NoxiousPoison_Timer = urand(12000, 24000);
             } else NoxiousPoison_Timer -= diff;
 

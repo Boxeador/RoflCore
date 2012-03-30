@@ -73,7 +73,9 @@ enum eSpells
     SPELL_BLACK_KNIGHT_RES  = 67693,
 
     SPELL_LEAP              = 67749,
-    SPELL_LEAP_H            = 67880
+    SPELL_LEAP_H            = 67880,
+
+    SPELL_KILL_CREDIT       = 68663
 };
 
 enum eModels
@@ -413,6 +415,7 @@ public:
 
         void JustDied(Unit* pKiller)
         {
+            DoCast(me, SPELL_KILL_CREDIT);
             DoScriptText(SAY_DEATH_3, me);
             if (GameObject* pGO = GameObject::GetGameObject(*me, pInstance->GetData64(DATA_MAIN_GATE1)))
                         pInstance->HandleGameObject(pGO->GetGUID(),true);

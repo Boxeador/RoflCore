@@ -146,7 +146,7 @@ public:
                 if (EarthShock_Timer <= diff)
                 {
                     DoCast(me->getVictim(), SPELL_EARTH_SHOCK);
-                    EarthShock_Timer = 1000;
+                    EarthShock_Timer = 10000;
                 } else EarthShock_Timer -= diff;
             }
 

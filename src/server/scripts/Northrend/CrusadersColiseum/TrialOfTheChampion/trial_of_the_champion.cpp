@@ -550,8 +550,7 @@ public:
             DoScriptText(SAY_START3, me);
             if (Creature* pBoss = me->SummonCreature(uiArgentChampion,SpawnPosition))
             {
-
-                for (uint8 i = 0; i < 3; ++i)
+			for (uint8 i = 0; i < 3; ++i)
                 {
                     if (Creature* pTrash = me->SummonCreature(NPC_ARGENT_LIGHWIELDER,SpawnPosition))
                         pTrash->AI()->SetData(i,0);

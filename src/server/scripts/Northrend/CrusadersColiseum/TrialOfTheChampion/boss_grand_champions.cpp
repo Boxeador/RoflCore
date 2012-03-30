@@ -71,7 +71,8 @@ enum eSpells
     SPELL_EVISCERATE                = 67709,
     SPELL_EVISCERATE_H              = 68317,
     SPELL_FAN_OF_KNIVES             = 67706,
-    SPELL_POISON_BOTTLE             = 67701
+    SPELL_POISON_BOTTLE             = 67701,
+    SPELL_KILL_CREDIT       = 68572
 };
 enum eEnums
 {
@@ -424,6 +425,7 @@ public:
 
         void JustDied(Unit* pKiller)
         {
+                 DoCast(me, SPELL_KILL_CREDIT);
                  DoScriptText(SAY_START_1, me);
             if (pInstance)
                 pInstance->SetData(BOSS_GRAND_CHAMPIONS, DONE);
@@ -559,6 +561,7 @@ public:
 
         void JustDied(Unit* pKiller)
         {
+                 DoCast(me, SPELL_KILL_CREDIT);
                  DoScriptText(SAY_START_1, me);
             if (pInstance)
                 pInstance->SetData(BOSS_GRAND_CHAMPIONS, DONE);
@@ -708,6 +711,7 @@ public:
 
         void JustDied(Unit* pKiller)
         {
+                  DoCast(me, SPELL_KILL_CREDIT);
                  DoScriptText(SAY_START_1, me);
             if (pInstance)
                 pInstance->SetData(BOSS_GRAND_CHAMPIONS, DONE);
@@ -880,6 +884,7 @@ public:
 
         void JustDied(Unit* pKiller)
         {
+              DoCast(me, SPELL_KILL_CREDIT);
              DoScriptText(SAY_START_1, me);
             if (pInstance)
                 pInstance->SetData(BOSS_GRAND_CHAMPIONS, DONE);
@@ -1004,6 +1009,7 @@ public:
 
         void JustDied(Unit* pKiller)
         {
+              DoCast(me, SPELL_KILL_CREDIT);
              DoScriptText(SAY_START_1, me);
             if (pInstance)
                 pInstance->SetData(BOSS_GRAND_CHAMPIONS, DONE);

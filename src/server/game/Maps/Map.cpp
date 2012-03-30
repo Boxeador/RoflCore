@@ -2376,7 +2376,9 @@ bool InstanceMap::AddPlayerToMap(Player* player)
                         if (LFGDungeonEntry const* randomDungeon = sLFGDungeonStore.LookupEntry(*(sLFGMgr->GetSelectedDungeons(player->GetGUID()).begin())))
 							if (dungeon->map == GetId() && dungeon->difficulty == GetDifficulty() && randomDungeon->type == LFG_TYPE_RANDOM) {
                                 player->CastSpell(player, LFG_SPELL_LUCK_OF_THE_DRAW, true);
-								uint8 did = 0;
+	uint64 gguid = group->GetGUID();
+	LfgState state = sLFGMgr->GetState(gguid);
+							uint8 did = 0;
 		if (player->GetMapId() == 43) {
 		did = 23;
 	} else if (player->GetMapId() == 289) {
@@ -2447,24 +2449,50 @@ bool InstanceMap::AddPlayerToMap(Player* player)
 		did = 71;
 		} else if (player->GetMapId() == 90) {
 		did = 29;
-		} else if (player->GetMapId() == 650) {
-		did = 15;
 		} else if (player->GetMapId() == 668) {
+		did = 15;
+		} else if (player->GetMapId() == 309) {
+		did = 15;
+		} else if (player->GetMapId() == 409) {
+		did = 15;
+		} else if (player->GetMapId() == 469) {
+		did = 15;
+		} else if (player->GetMapId() == 509) {
+		did = 15;
+		} else if (player->GetMapId() == 531) {
+		did = 15;
+		} else if (player->GetMapId() == 532) {
+		did = 15;
+		} else if (player->GetMapId() == 544) {
+		did = 15;
+		} else if (player->GetMapId() == 565) {
+		did = 15;
+		} else if (player->GetMapId() == 550) {
+		did = 15;
+		} else if (player->GetMapId() == 548) {
+		did = 15;
+		} else if (player->GetMapId() == 534) {
+		did = 15;
+		} else if (player->GetMapId() == 564) {
+		did = 15;
+		} else if (player->GetMapId() == 568) {
+		did = 15;
+		} else if (player->GetMapId() == 580) {
 		did = 15;
 	} else {
 		did = 80;
 	}
 		if (player->getLevel() > did) {
-		} else {
-    if (player->HasAura(91084)){
-      } else {
-    
+
+		} else if (player->HasAura(91084)){
+
+      } else if (player->getLevel() < did && !player->HasAura(91084) && state == LFG_STATE_DUNGEON){
+		player->CastSpell(player, 91084, true);
+	} else {
 		player->CastSpell(player, 91084, true);
 }
-                                //player->CastSpell(player, LFG_SPELL_DUNGEON_COOLDOWN, true);
-		}
+	  }
 }
-        }
 
         // for normal instances cancel the reset schedule when the
         // first player enters (no players yet)

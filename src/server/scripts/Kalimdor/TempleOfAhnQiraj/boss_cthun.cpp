@@ -365,7 +365,7 @@ public:
                             me->StopMoving();
 
                             //Actual dark glare cast, maybe something missing here?
-                            DoCast(me, SPELL_DARK_GLARE, false);
+                            //DoCast(me, SPELL_DARK_GLARE, false);
 
                             //Increase tick
                             ++DarkGlareTick;

@@ -1867,6 +1867,14 @@ else if (dungeon->ID == 40)
      z = 142.702;
      orientation = 0.1;
 }
+else if (dungeon->ID == 175)
+{
+     mapid = at->target_mapId;
+     x = -11100;
+     y = -2003.98;
+     z = 49.8927;
+     orientation = 0.1;
+}
 else if (dungeon->ID == 274)
 {
      mapid = at->target_mapId;

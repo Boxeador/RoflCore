@@ -66,7 +66,9 @@ enum eSpells
     SPELL_SHADOWS_PAST          = 66619,
     SPELL_SHADOWS_PAST_H        = 67678,
     SPELL_WAKING_NIGHTMARE      = 66552,
-    SPELL_WAKING_NIGHTMARE_H    = 67677
+    SPELL_WAKING_NIGHTMARE_H    = 67677,
+
+    SPELL_KILL_CREDIT       = 68574
 };
 enum Misc
 {
@@ -111,9 +113,10 @@ public:
         boss_eadricAI(Creature* pCreature) : ScriptedAI(pCreature)
         {
             pInstance = (InstanceScript*)pCreature->GetInstanceScript();
-            pCreature->SetReactState(REACT_PASSIVE);
-            pCreature->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NON_ATTACKABLE);
-            pCreature->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NOT_SELECTABLE);
+            //pCreature->SetReactState(REACT_PASSIVE);
+            //pCreature->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NON_ATTACKABLE);
+            //pCreature->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NOT_SELECTABLE);
+            pCreature->RestoreFaction();
         }
 
         InstanceScript* pInstance;
@@ -145,6 +148,7 @@ public:
                 me->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NON_ATTACKABLE);
                 me->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NOT_SELECTABLE);
                 DoScriptText(SAY_DEATH_E, me);
+                DoCast(me, SPELL_KILL_CREDIT);
                 me->setFaction(35);
                 bDone = true;
                 if (GameObject* pGO = GameObject::GetGameObject(*me, pInstance->GetData64(DATA_MAIN_GATE)))
@@ -243,9 +247,9 @@ public:
             pInstance = (InstanceScript*)pCreature->GetInstanceScript();
 
             MemoryGUID = 0;
-            pCreature->SetReactState(REACT_PASSIVE);
-            pCreature->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NON_ATTACKABLE);
-            pCreature->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NOT_SELECTABLE);
+            //pCreature->SetReactState(REACT_PASSIVE);
+            //pCreature->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NON_ATTACKABLE);
+            //pCreature->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NOT_SELECTABLE);
             pCreature->RestoreFaction();
         }
 
@@ -297,6 +301,7 @@ public:
                 me->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NON_ATTACKABLE);
                 me->SetFlag(UNIT_FIELD_FLAGS,UNIT_FLAG_NOT_SELECTABLE);
                 DoScriptText(SAY_DEATH_P, me);
+                DoCast(me, SPELL_KILL_CREDIT);
                 me->setFaction(35);
                 bDone = true;
                 if (GameObject* pGO = GameObject::GetGameObject(*me, pInstance->GetData64(DATA_MAIN_GATE)))
