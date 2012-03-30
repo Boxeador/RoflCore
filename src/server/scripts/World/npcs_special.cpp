@@ -2797,4 +2797,3 @@ void AddSC_npcs_special()
     new npc_fire_elemental;
     new npc_earth_elemental;
 }
-

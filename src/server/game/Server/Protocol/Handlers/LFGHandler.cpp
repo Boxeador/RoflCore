@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -24,6 +24,7 @@
 #include "ObjectMgr.h"
 #include "GroupMgr.h"
 #include "InstanceScript.h"
+#include "GameEventMgr.h"
 
 void BuildPlayerLockDungeonBlock(WorldPacket& data, const LfgLockMap& lock)
 {
@@ -48,7 +49,8 @@ void BuildPartyLockDungeonBlock(WorldPacket& data, const LfgLockPartyMap& lockMa
 void WorldSession::HandleLfgJoinOpcode(WorldPacket& recv_data)
 {
     if (!sWorld->getBoolConfig(CONFIG_DUNGEON_FINDER_ENABLE) ||
-        (GetPlayer()->GetGroup() && GetPlayer()->GetGroup()->GetLeaderGUID() != GetPlayer()->GetGUID()))
+        (GetPlayer()->GetGroup() && GetPlayer()->GetGroup()->GetLeaderGUID() != GetPlayer()->GetGUID() &&
+        (GetPlayer()->GetGroup()->GetMembersCount() == MAXGROUPSIZE || !GetPlayer()->GetGroup()->isLFGGroup())))
     {
         recv_data.rfinish();
         return;
@@ -161,10 +163,35 @@ void WorldSession::HandleLfgPlayerLockInfoRequestOpcode(WorldPacket& /*recv_data
     uint8 expansion = GetPlayer()->GetSession()->Expansion();
     for (uint32 i = 0; i < sLFGDungeonStore.GetNumRows(); ++i)
     {
-		LFGDungeonEntry const* dungeon = sLFGDungeonStore.LookupEntry(i);
+        LFGDungeonEntry const* dungeon = sLFGDungeonStore.LookupEntry(i);
         if (dungeon && dungeon->type == LFG_TYPE_RANDOM && dungeon->expansion <= expansion &&
-            dungeon->minlevel <= -1 && 9999 <= dungeon->maxlevel)
+            dungeon->minlevel <= level && level <= dungeon->maxlevel)
             randomDungeons.insert(dungeon->Entry());
+
+        if (dungeon && dungeon->grouptype == 11 && dungeon->expansion <= expansion && dungeon->minlevel <= level && level <= dungeon->maxlevel)
+        {
+            uint8 eventEntry = 0;
+            switch (dungeon->ID)
+            {
+                case 285: // The Headless Horseman
+                    eventEntry = 12; // Hallow's End
+                    break;
+                case 286: // The Frost Lord Ahune
+                    eventEntry = 1; // Midsummer Fire Festival
+                    break;
+                case 287: // Coren Direbrew
+                    eventEntry = 24; // Brewfest
+                    break;
+                case 288: // The Crown Chemical Co.
+                    eventEntry = 8; // Love is in the Air
+                    break;
+                default:
+                    break;
+            }
+
+            if (eventEntry && sGameEventMgr->IsActiveEvent(eventEntry))
+                randomDungeons.insert(dungeon->Entry());
+        }
     }
 
     // Get player locked Dungeons
@@ -192,10 +219,7 @@ void WorldSession::HandleLfgPlayerLockInfoRequestOpcode(WorldPacket& /*recv_data
                     qRew = sObjectMgr->GetQuestTemplate(reward->reward[1].questId);
             }
         }
-        for (uint32 i = 0; i < sLFGDungeonStore.GetNumRows(); ++i)
-    {
-      LFGDungeonEntry const* dungeon = sLFGDungeonStore.LookupEntry(i);
-       if (qRew)
+        if (qRew)
         {
             data << uint8(done);
             data << uint32(qRew->GetRewOrReqMoney());
@@ -219,9 +243,16 @@ void WorldSession::HandleLfgPlayerLockInfoRequestOpcode(WorldPacket& /*recv_data
                 }
             }
         }
+        else
+        {
+            data << uint8(0);
+            data << uint32(0);
+            data << uint32(0);
+            data << uint32(0);
+            data << uint32(0);
+            data << uint8(0);
+        }
     }
-}
-	//隐蔽可取消锁定低级副本
     BuildPlayerLockDungeonBlock(data, lock);
     SendPacket(&data);
 }

@@ -495,7 +495,7 @@ enum eDalaranCrystal
     QUEST_TELE_CRYSTAL_FLAG     = 12845
 };
 
-#define GO_TELE_TO_DALARAN_CRYSTAL_FAILED   "必须完成相关的任务才能使用."
+#define GO_TELE_TO_DALARAN_CRYSTAL_FAILED   "This teleport crystal cannot be used until the teleport crystal in Dalaran has been used at least once."
 class go_tele_to_dalaran_crystal : public GameObjectScript
 {
 public:

@@ -197,7 +197,7 @@ struct boss_twinemperorsAI : public ScriptedAI
             if (pOtherBoss && pOtherBoss->IsWithinDist(me, 60))
             {
                 DoCast(pOtherBoss, SPELL_HEAL_BROTHER);
-                Heal_Timer = 10000;
+                Heal_Timer = 1000;
             }
         } else Heal_Timer -= diff;
     }

@@ -575,7 +575,7 @@ public:
             if (SoulShockTimer <= diff)
             {
                 DoCast(me->getVictim(), SPELL_SOUL_SHOCK);
-                SoulShockTimer = 20000;
+                SoulShockTimer = 5000;
             } else SoulShockTimer -= diff;
 
             if (DeadenTimer <= diff)

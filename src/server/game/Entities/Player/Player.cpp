@@ -502,8 +502,8 @@ inline void KillRewarder::_RewardXP(Player* player, float rate)
         if (_maxNotGrayMember && player->isAlive() &&
             _maxNotGrayMember->getLevel() >= player->getLevel()) 
             xp = _isFullXP ?
-                //uint32(xp * rate) :             // Reward FULL XP if all group members are not gray.
-               uint32(xp * rate / 2) + 1 :      // Reward only HALF of XP if some of group members are gray.
+                uint32(xp * rate) :             // Reward FULL XP if all group members are not gray.
+               //uint32(xp * rate / 2) + 1 :      // Reward only HALF of XP if some of group members are gray.
 				uint32(xp * rate) ;      // Reward FULL XP if all group members are not gray.
         else
             xp = 0;
@@ -554,8 +554,8 @@ void KillRewarder::_RewardPlayer(Player* player, bool isDungeon)
     if (!_isPvP || _isBattleGround)
     {
         const float rate = _group ?
-			//1.0f : // 组队也获得100%的经验值加成.
-            _groupRate * float(player->getLevel()) / _sumLevel : // Group rate depends on summary level.
+			1.0f : // 组队也获得100%的经验值加成.
+            //_groupRate * float(player->getLevel()) / _sumLevel : // Group rate depends on summary level.
             1.0f;                                                // Personal rate is 100%.
         if (_xp)
             // 4.2. Give XP.
@@ -1434,7 +1434,7 @@ void Player::HandleDrowning(uint32 time_diff)
                     EnvironmentalDamage(DAMAGE_LAVA, damage);
                 // need to skip Slime damage in Undercity,
                 // maybe someone can find better way to handle environmental damage
-                else if (m_zoneUpdateId != 1497)
+                else if (m_zoneUpdateId != 1497 && m_zoneUpdateId != 3968)
                     EnvironmentalDamage(DAMAGE_SLIME, damage);
             }
         }
@@ -5507,18 +5507,8 @@ void Player::RepopAtGraveyard()
     // and don't show spirit healer location
     if (ClosestGrave)
     {
-      const Group* grp = GetGroup();
-        if(grp) {
-        if (grp->isLFGGroup())
-    {
-    sLFGMgr->TeleportPlayer(this, true, true);
-    ResurrectPlayer(0.5f);
-      } else {
         TeleportTo(ClosestGrave->map_id, ClosestGrave->x, ClosestGrave->y, ClosestGrave->z, GetOrientation());
-}
-} else {
-TeleportTo(ClosestGrave->map_id, ClosestGrave->x, ClosestGrave->y, ClosestGrave->z, GetOrientation());
-}
+
         if (isDead())                                        // not send if alive, because it used in TeleportTo()
         {
             WorldPacket data(SMSG_DEATH_RELEASE_LOC, 4*4);  // show spirit healer position on minimap
@@ -23591,6 +23581,13 @@ void Player::UpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 mis
 void Player::CompletedAchievement(AchievementEntry const* entry)
 {
     GetAchievementMgr().CompletedAchievement(entry);
+}
+
+bool Player::HasAchieved(uint32 entry)
+{
+    if(AchievementEntry const *achievement = sAchievementStore.LookupEntry(entry))
+        return GetAchievementMgr().HasAchieved(entry);
+    return false;
 }
 
 void Player::LearnTalent(uint32 talentId, uint32 talentRank)

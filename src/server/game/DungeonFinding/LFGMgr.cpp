@@ -16,9 +16,6 @@
  */
 
 #include "Common.h"
-#include "WorldSession.h"
-#include "WorldPacket.h"
-#include "InstanceScript.h"
 #include "SharedDefines.h"
 #include "DBCStores.h"
 
@@ -86,12 +83,12 @@ void LFGMgr::_LoadFromDB(Field* fields, uint64 guid)
     uint32 dungeon = fields[16].GetUInt32();
 
     uint8 state = fields[17].GetUInt8();
-
+    
     if (!dungeon || !state)
         return;
 
     SetDungeon(guid, dungeon);
-
+    
     switch (state)
     {
         case LFG_STATE_DUNGEON:
@@ -107,19 +104,19 @@ void LFGMgr::_SaveToDB(uint64 guid, uint32 db_guid)
 {
     if (!IS_GROUP(guid))
         return;
-
+        
     PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_LFG_DATA);
 
     stmt->setUInt32(0, db_guid);
 
     CharacterDatabase.Execute(stmt);
-
+    
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_LFG_DATA);
     stmt->setUInt32(0, db_guid);
-
+    
     stmt->setUInt32(1, GetDungeon(guid));
     stmt->setUInt32(2, GetState(guid));
-
+        
     CharacterDatabase.Execute(stmt);
 }
 
@@ -417,6 +414,7 @@ void LFGMgr::InitializeLockedDungeons(Player* player)
     uint64 guid = player->GetGUID();
     uint8 level = player->getLevel();
     uint8 expansion = player->GetSession()->Expansion();
+    float averageItemLevel = player->GetAverageItemLevel();
     LfgDungeonSet dungeons = GetDungeonsByRandom(0);
     LfgLockMap lock;
 
@@ -459,6 +457,7 @@ void LFGMgr::InitializeLockedDungeons(Player* player)
                 else if (ar->item2 && !player->HasItemCount(ar->item2, 1))
                     locktype = LFG_LOCKSTATUS_MISSING_ITEM;
         }
+
         /* TODO VoA closed if WG is not under team control (LFG_LOCKSTATUS_RAID_LOCKED)
             locktype = LFG_LOCKSTATUS_TOO_LOW_GEAR_SCORE;
             locktype = LFG_LOCKSTATUS_TOO_HIGH_GEAR_SCORE;
@@ -466,6 +465,35 @@ void LFGMgr::InitializeLockedDungeons(Player* player)
             locktype = LFG_LOCKSTATUS_ATTUNEMENT_TOO_HIGH_LEVEL;
             locktype = LFG_LOCKSTATUS_NOT_IN_SEASON; // Need list of instances and needed season to open
         */
+
+        float requiredItemLevel = 0.0f;
+        if(level < 80)
+            return;
+
+        if (dungeon->expansion == 2)
+            if (dungeon->difficulty == DUNGEON_DIFFICULTY_HEROIC)
+                requiredItemLevel = 160.0f;
+
+        switch (dungeon->ID)
+        {
+            case 245:                               // Trial of the Champion
+            case 251:                               // The Forge of Souls
+            case 253:                               // Pit of Saron
+            case 255:                               // Halls of Reflection
+                requiredItemLevel = 179;
+                break;
+            case 249:                               // Heroic: Trial of the Champion
+            case 252:                               // Heroic: The Forge of Souls
+            case 254:                               // Heroic: Pit of Saron
+                requiredItemLevel = 199;
+                break;
+            case 256:                               // Heroic: Halls of Reflection
+                requiredItemLevel = 218;
+                break;
+        }
+
+        if (averageItemLevel < requiredItemLevel)
+            locktype = LFG_LOCKSTATUS_TOO_LOW_GEAR_SCORE;
 
         if (locktype != LFG_LOCKSTATUS_OK)
             lock[dungeon->Entry()] = locktype;
@@ -530,8 +558,6 @@ void LFGMgr::Join(Player* player, uint8 roles, const LfgDungeonSet& selectedDung
         joinData.result = LFG_JOIN_USING_BG_SYSTEM;
     else if (player->HasAura(LFG_SPELL_DUNGEON_DESERTER))
         joinData.result = LFG_JOIN_DESERTER;
-	else if (player->HasAura(91084))
-        joinData.result = LFG_JOIN_DESERTER;
     else if (player->HasAura(LFG_SPELL_DUNGEON_COOLDOWN))
         joinData.result = LFG_JOIN_RANDOM_COOLDOWN;
     else if (dungeons.empty())
@@ -549,8 +575,6 @@ void LFGMgr::Join(Player* player, uint8 roles, const LfgDungeonSet& selectedDung
                 {
                     if (plrg->HasAura(LFG_SPELL_DUNGEON_DESERTER))
                         joinData.result = LFG_JOIN_PARTY_DESERTER;
-					else if (plrg->HasAura(91084))
-						joinData.result = LFG_JOIN_PARTY_DESERTER;
                     else if (plrg->HasAura(LFG_SPELL_DUNGEON_COOLDOWN))
                         joinData.result = LFG_JOIN_PARTY_RANDOM_COOLDOWN;
                     else if (plrg->InBattleground() || plrg->InArena() || plrg->InBattlegroundQueue())
@@ -568,6 +592,7 @@ void LFGMgr::Join(Player* player, uint8 roles, const LfgDungeonSet& selectedDung
 
     // Check if all dungeons are valid
     bool isRaid = false;
+    bool isRandom = false;
     if (joinData.result == LFG_JOIN_OK)
     {
         bool isDungeon = false;
@@ -579,7 +604,10 @@ void LFGMgr::Join(Player* player, uint8 roles, const LfgDungeonSet& selectedDung
                     if (dungeons.size() > 1)               // Only allow 1 random dungeon
                         joinData.result = LFG_JOIN_DUNGEON_INVALID;
                     else
+                    {
                         rDungeonId = (*dungeons.begin());
+                        isRandom = true;
+                    }
                     // No break on purpose (Random can only be dungeon or heroic dungeon)
                 case LFG_TYPE_HEROIC:
                 case LFG_TYPE_DUNGEON:
@@ -695,6 +723,10 @@ void LFGMgr::Join(Player* player, uint8 roles, const LfgDungeonSet& selectedDung
             }
             SetSelectedDungeons(guid, dungeons);
         }
+
+        if(isRandom)
+            player->CastSpell(player, LFG_SPELL_DUNGEON_COOLDOWN, true);
+
         AddToQueue(guid, uint8(player->GetTeam()));
     }
     sLog->outDebug(LOG_FILTER_LFG, "LFGMgr::Join: [" UI64FMTD "] joined with %u members. dungeons: %u", guid, grp ? grp->GetMembersCount() : 1, uint8(dungeons.size()));
@@ -979,7 +1011,7 @@ bool LFGMgr::CheckCompatibility(LfgGuidList check, LfgProposal*& pProposal)
     SetCompatibles(strGuids, true);
 
     // ----- Group is compatible, if we have MAXGROUPSIZE members then match is found
-    if (numPlayers < sWorld->getRate(DungeonFinder_minplayer))
+    if (numPlayers != MAXGROUPSIZE)
     {
         sLog->outDebug(LOG_FILTER_LFG, "LFGMgr::CheckCompatibility: (%s) Compatibles but not match. Players(%u)", strGuids.c_str(), numPlayers);
         uint8 Tanks_Needed = LFG_TANKS_NEEDED;
@@ -1006,7 +1038,7 @@ bool LFGMgr::CheckCompatibility(LfgGuidList check, LfgProposal*& pProposal)
                 LfgQueueInfo* queue = itQueue->second;
                 if (!queue)
                     continue;
-
+        
                 for (LfgRolesMap::const_iterator itPlayer = queue->roles.begin(); itPlayer != queue->roles.end(); ++itPlayer)
                 {
                     if (*itPlayers == ObjectAccessor::FindPlayer(itPlayer->first))
@@ -1385,12 +1417,8 @@ void LFGMgr::UpdateProposal(uint32 proposalId, uint64 guid, bool accept)
             // Only teleport new players
             Group* grp = player->GetGroup();
             uint64 gguid = grp ? grp->GetGUID() : 0;
-			if (!gguid || !grp->isLFGGroup() || GetState(gguid) == LFG_STATE_FINISHED_DUNGEON)
-				//ChatHandler(player).PSendSysMessage(11002);
-
-			//}
+            if (!gguid || !grp->isLFGGroup() || GetState(gguid) == LFG_STATE_FINISHED_DUNGEON)
                 playersToTeleport.push_back(player);
-				//TeleportPlayer(player, false);
         }
 
         if (itPlayers->second->accept != LFG_ANSWER_AGREE)   // No answer (-1) or not accepted (0)
@@ -1817,161 +1845,89 @@ void LFGMgr::TeleportPlayer(Player* player, bool out, bool fromOpcode /*= false*
                 }
                 else
                 {
-                    //monasterio escarlata arsenal
-if (dungeon->ID == 163)
-{
-     mapid = at->target_mapId;
-     x = 1610.83;
-     y = -323.433;
-     z = 18.6738;
-     orientation = 6.28022;
-}
-//monasterio escarlata catedral
-else if (dungeon->ID == 164)
-{
-     mapid = at->target_mapId;
-     x = 855.683;
-     y = 1321.5;
-     z = 18.6709;
-     orientation = 0.001747;
-}
-else if (dungeon->ID == 18)
-{
-     mapid = at->target_mapId;
-     x = 1688.99;
-     y = 1053.48;
-     z = 18.6775;
-     orientation = 0.00117;
-}
-else if (dungeon->ID == 26)
-{
-     mapid = at->target_mapId;
-     x = 1019.69;
-     y = -458.31;
-     z = -43.43;
-     orientation = 0.31;
-}
-else if (dungeon->ID == 34)
-{
-     mapid = at->target_mapId;
-     x = 44.4499;
-     y = -154.822;
-     z = -2.71201;
-     orientation = 0;
-}
-else if (dungeon->ID == 40)
-{
-     mapid = at->target_mapId;
-     x = 3395.09;
-     y = -3380.25;
-     z = 142.702;
-     orientation = 0.1;
-}
-else if (dungeon->ID == 175)
-{
-     mapid = at->target_mapId;
-     x = -11100;
-     y = -2003.98;
-     z = 49.8927;
-     orientation = 0.1;
-}
-else if (dungeon->ID == 274)
-{
-     mapid = at->target_mapId;
-     x = 3593.15;
-     y = -3646.56;
-     z = 138.5;
-     orientation = 5.33;
-}
-else if (dungeon->ID == 32)
-{
-     mapid = at->target_mapId;
-     x = 78.5083;
-     y = -225.044;
-     z = 49.839;
-     orientation = 5.1;
-}
-else if (dungeon->ID == 44)
-{
-     mapid = at->target_mapId;
-     x = 174.74;
-     y = -474.77;
-     z = 116.84;
-     orientation = 3.2;
-}
-else if (dungeon->ID == 36)
-{
-     mapid = at->target_mapId;
-     x = -62.9658;
-     y = 159.867;
-     z = -3.46206;
-     orientation = 3.14788;
-}
-else if (dungeon->ID == 38)
-{
-     mapid = at->target_mapId;
-     x = 255.249;
-     y = -16.0561;
-     z = -2.58737;
-     orientation = 4.7;
-}
-else if (dungeon->ID == 30)
-{
-     mapid = at->target_mapId;
-     x = 458.32;
-     y = 26.52;
-     z = -70.67;
-     orientation = 4.95;
-}
-else if (dungeon->ID == 276)
-{
-     mapid = at->target_mapId;
-     x = 750.912048;
-     y = -79.107010;
-     z = -46.233376;
-     orientation = 0.831439;
-}
-else if (dungeon->ID == 272)
-{
-     mapid = at->target_mapId;
-     x = 752.91;
-     y = -616.53;
-     z = -33.11;
-     orientation = 1.37;
-}
-else if (dungeon->ID == 273)
-{
-     mapid = at->target_mapId;
-     x = 650.875000;
-     y = 66.642586;
-     z = -86.733139;
-     orientation = 2.842905;
-}
-else if (dungeon->ID == 14)
-{
-     mapid = at->target_mapId;
-     x = -332.22;
-     y = -2.28;
-     z = -150.86;
-     orientation = 2.77;
-}
-//monasterio escarlata libreria
-else if (dungeon->ID == 165)
-{
-     mapid = at->target_mapId;
-     x = 255.346;
-     y = -209.09;
-     z = 18.6773;
-     orientation = 6.26656;
-}
-else
-{
-     mapid = at->target_mapId;
-     x = at->target_X;
-     y = at->target_Y;
-     z = at->target_Z;
-     orientation = at->target_Orientation;
-}
+                    mapid = at->target_mapId;
+                    x = at->target_X;
+                    y = at->target_Y;
+                    z = at->target_Z;
+                    orientation = at->target_Orientation;
+                }
+
+                // FIXME
+                switch (dungeon->ID)
+                {
+                    // world events
+                    case 285: // The Headless Horseman
+                        mapid = 189;
+                        x = 1793.837f;
+                        y = 1347.15f;
+                        z = 20.38f;
+                        orientation = 3.17f;
+                        break;
+                    case 286: // The Frost Lord Ahune
+                        break;
+                    case 287: // Coren Direbrew
+                        mapid = 230;
+                        x = 907.299f;
+                        y = -156.689f;
+                        z = -47.75f;
+                        orientation = 2.108f;
+                        break;
+                    case 288: // The Crown Chemical Co.
+                        break;
+                    // normal dungeons
+                    case 14: // Gnomeregan
+                        mapid = 90;
+                        x = -332.22f;
+                        y = -2.28f;
+                        z = -150.86f;
+                        orientation = 2.77f;
+                        break;
+                    case 22: // Uldaman
+                        mapid = 70;
+                        x = -226.8f;
+                        y = 49.09f;
+                        z = -46.03f;
+                        orientation = 1.39f;
+                        break;
+                    case 30: // Blackrock Depths - Prison
+                    case 276: // Blackrock Depths - Upper City
+                        mapid = 230;
+                        x = 458.32f;
+                        y = 26.52f;
+                        z = -70.67f;
+                        orientation = 4.95f;
+                        break;
+                    case 163: // Scarlet Monastery - Armory
+                        mapid = 189;
+                        x = 1610.83f;
+                        y = -323.433f;
+                        z = 18.6738f;
+                        orientation = 6.28022f;
+                        break;
+                    case 164: // Scarlet Monastery - Cathedral
+                        mapid = 189;
+                        x = 855.683f;
+                        y = 1321.5f;
+                        z = 18.6709f;
+                        orientation = 0.001747f;
+                        break;
+                    case 165: // Scarlet Monastery - Library
+                        mapid = 189;
+                        x = 255.346f;
+                        y = -209.09f;
+                        z = 18.6773f;
+                        orientation = 6.26656f;
+                        break;
+                    case 216: // Gundrak
+                    case 217: // Gundrak (Heroic)
+                        mapid = 604;
+                        x = 1894.58f;
+                        y = 652.713f;
+                        z = 176.666f;
+                        orientation = 4.078f;
+                        break;
+                    default:
+                        break;
                 }
             }
 
@@ -1987,8 +1943,12 @@ else
                 }
 
                 if (player->TeleportTo(mapid, x, y, z, orientation))
+                {
                     // FIXME - HACK - this should be done by teleport, when teleporting far
                     player->RemoveAurasByType(SPELL_AURA_MOUNTED);
+                    if(dungeon->type == LFG_TYPE_RANDOM)
+                        player->CastSpell(player, LFG_SPELL_LUCK_OF_THE_DRAW, true);
+                }
                 else
                 {
                     error = LFG_TELEPORTERROR_INVALID_LOCATION;
@@ -2011,7 +1971,6 @@ else
 void LFGMgr::RewardDungeonDoneFor(const uint32 dungeonId, Player* player)
 {
     Group* group = player->GetGroup();
-	uint8 did = 0;
     if (!group || !group->isLFGGroup())
     {
         sLog->outDebug(LOG_FILTER_LFG, "LFGMgr::RewardDungeonDoneFor: [" UI64FMTD "] is not in a group or not a LFGGroup. Ignoring", player->GetGUID());
@@ -2035,7 +1994,6 @@ void LFGMgr::RewardDungeonDoneFor(const uint32 dungeonId, Player* player)
 
     // Mark dungeon as finished
     SetState(gguid, LFG_STATE_FINISHED_DUNGEON);
-	player->RemoveAurasDueToSpell(91084);
 
     // Clear player related lfg stuff
     uint32 rDungeonId = (*GetSelectedDungeons(guid).begin());
@@ -2044,30 +2002,17 @@ void LFGMgr::RewardDungeonDoneFor(const uint32 dungeonId, Player* player)
 
     // Give rewards only if its a random dungeon
     LFGDungeonEntry const* dungeon = sLFGDungeonStore.LookupEntry(rDungeonId);
-    if (!dungeon || dungeon->type != LFG_TYPE_RANDOM)
+    if (!dungeon || (dungeon->type != LFG_TYPE_RANDOM && dungeon->grouptype != 11))
     {
         sLog->outDebug(LOG_FILTER_LFG, "LFGMgr::RewardDungeonDoneFor: [" UI64FMTD "] dungeon %u is not random", guid, rDungeonId);
         return;
     }
-	if (player->GetMapId() == 43 || player->GetMapId() == 389 || player->GetMapId() == 36 || player->GetMapId() == 33 || player->GetMapId() == 10 || player->GetMapId() == 12 || player->GetMapId() == 48 || player->GetMapId() == 34) {
-		did = 20;
-	} else if (player->GetMapId() == 90 || player->GetMapId() == 47 || player->GetMapId() == 189) {
-		did = 30;
-	} else if (player->GetMapId() == 129 || player->GetMapId() == 70 || player->GetMapId() == 209 || player->GetMapId() == 349) {
-		did = 40;
-	} else if (player->GetMapId() == 109 || player->GetMapId() == 230) {
-		did = 50;
-	} else if (player->GetMapId() == 289 || player->GetMapId() == 229 || player->GetMapId() == 429 || player->GetMapId() == 329 || player->GetMapId() == 542 || player->GetMapId() == 543 || player->GetMapId() == 540 || player->GetMapId() == 547) {
-		did = 60;
-	} else if (player->GetMapId() == 546 || player->GetMapId() == 545 || player->GetMapId() == 557 || player->GetMapId() == 558 || player->GetMapId() == 556 || player->GetMapId() == 555 || player->GetMapId() == 560 || player->GetMapId() == 269 || player->GetMapId() == 554 || player->GetMapId() == 553 || player->GetMapId() == 552 || player->GetMapId() == 585) {
-		did = 70;
-	} else {
-		did = 15;
-	}
+
     // Update achievements
     if (dungeon->difficulty == DUNGEON_DIFFICULTY_HEROIC)
         player->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_USE_LFD_TO_GROUP_WITH_PLAYERS, 1);
-    LfgReward const* reward = GetRandomDungeonReward(rDungeonId, did);
+
+    LfgReward const* reward = GetRandomDungeonReward(rDungeonId, player->getLevel());
     if (!reward)
         return;
 
@@ -2092,7 +2037,6 @@ void LFGMgr::RewardDungeonDoneFor(const uint32 dungeonId, Player* player)
     // Give rewards
     sLog->outDebug(LOG_FILTER_LFG, "LFGMgr::RewardDungeonDoneFor: [" UI64FMTD "] done dungeon %u, %s previously done.", player->GetGUID(), GetDungeon(gguid), index > 0 ? " " : " not");
     player->GetSession()->SendLfgPlayerReward(dungeon->Entry(), GetDungeon(gguid, false), index, reward, qReward);
-    //player->RemoveAurasDueToSpell(LFG_SPELL_DUNGEON_COOLDOWN);
 }
 
 // --------------------------------------------------------------------------//

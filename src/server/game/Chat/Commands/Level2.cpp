@@ -17,10 +17,6 @@
  */
 
 #include "Common.h"
-#include "ScriptMgr.h"
-#include "ObjectMgr.h"
-#include "Chat.h"
-#include "AccountMgr.h"
 #include "DatabaseEnv.h"
 #include "DBCStores.h"
 #include "ObjectMgr.h"
@@ -700,16 +696,6 @@ bool ChatHandler::HandleCombatStop(const char* args)
     if (!extractPlayerTarget((char*)args, &target))
         return false;
     target->CombatStopWithPets(false);
-    return true;
-}
-
-bool ChatHandler::HandleCombatStop1(const char* args)
-{
-	if (!*args)
-        return false;
-	Player* player = m_session->GetPlayer();
-    player->CastSpell(player, 7, true);
-    player->ResurrectPlayer(1.0f);
     return true;
 }
 

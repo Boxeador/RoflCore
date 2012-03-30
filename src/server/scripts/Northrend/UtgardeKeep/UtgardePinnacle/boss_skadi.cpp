@@ -170,10 +170,10 @@ public:
     {
         boss_skadiAI(Creature* creature) : ScriptedAI(creature), Summons(me)
         {
-            instance = creature->GetInstanceScript();
+            m_instance = creature->GetInstanceScript();
         }
 
-        InstanceScript* instance;
+        InstanceScript* m_instance;
         SummonList Summons;
         uint64 m_uiGraufGUID;
         std::vector<uint64> triggersGUID;
@@ -199,7 +199,7 @@ public:
             m_uiWhirlwindTimer = 20000;
             m_uiMountTimer = 3000;
             m_uiWaypointId = 0;
-            m_bSaidEmote = true;
+            m_bSaidEmote = false;
             m_uiSpellHitCount = 0;
 
             Phase = SKADI;
@@ -208,16 +208,16 @@ public:
             me->SetSpeed(MOVE_FLIGHT, 3.0f);
             if ((Unit::GetCreature((*me), m_uiGraufGUID) == NULL) && !me->IsMounted())
                  me->SummonCreature(CREATURE_GRAUF, Location[0].GetPositionX(), Location[0].GetPositionY(), Location[0].GetPositionZ(), 3.0f);
-            if (instance)
+            if (m_instance)
             {
-                instance->SetData(DATA_SKADI_THE_RUTHLESS_EVENT, NOT_STARTED);
-                instance->DoStopTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
+                m_instance->SetData(DATA_SKADI_THE_RUTHLESS_EVENT, NOT_STARTED);
+                m_instance->DoStopTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
             }
         }
 
         void JustReachedHome()
         {
-            me->SetCanFly(false);
+            me->SetFlying(false);
             me->Dismount();
             me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
             if (Unit::GetCreature((*me), m_uiGraufGUID) == NULL)
@@ -235,10 +235,10 @@ public:
             m_uiMovementTimer = 1000;
             m_uiSummonTimer = 10000;
             me->SetInCombatWithZone();
-            if (instance)
+            if (m_instance)
             {
-                instance->SetData(DATA_SKADI_THE_RUTHLESS_EVENT, IN_PROGRESS);
-                instance->DoStartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
+                m_instance->SetData(DATA_SKADI_THE_RUTHLESS_EVENT, IN_PROGRESS);
+                m_instance->DoStartTimedAchievement(ACHIEVEMENT_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
                 me->GetMotionMaster()->MoveJump(Location[0].GetPositionX(), Location[0].GetPositionY(), Location[0].GetPositionZ(), 5.0f, 10.0f);
                 me->SetWalk(false);
                 m_uiMountTimer = 1000;
@@ -278,13 +278,13 @@ public:
 
         void SpellHit(Unit* /*caster*/, const SpellInfo* spell)
         {
-            if (spell->Id == SPELL_RAPID_FIRE || spell->Id == SPELL_HARPOON_DAMAGE)
+            if (spell->Id == SPELL_HARPOON_DAMAGE)
             {
                 m_uiSpellHitCount++;
                 if (m_uiSpellHitCount >= 3)
                 {
                     Phase = SKADI;
-                    me->SetCanFly(false);
+                    me->SetFlying(false);
                     me->Dismount();
                     if (Creature* pGrauf = me->SummonCreature(CREATURE_GRAUF, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3*IN_MILLISECONDS))
                     {
@@ -322,13 +322,13 @@ public:
                     else
                     {
                         me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
-                        m_bSaidEmote = true;
+                        m_bSaidEmote = false;
                     }
 
                     if (m_uiMountTimer && m_uiMountTimer <= diff)
                     {
                         me->Mount(DATA_MOUNT);
-                        me->SetCanFly(true);
+                        me->SetFlying(true);
                         m_uiMountTimer = 0;
                     } else m_uiMountTimer -= diff;
 
@@ -358,21 +358,6 @@ public:
                                 me->GetMotionMaster()->MovePoint(0, Location[69].GetPositionX(), Location[69].GetPositionY(), Location[69].GetPositionZ());
                                 DoScriptText(RAND(SAY_DRAKE_BREATH_1, SAY_DRAKE_BREATH_2), me);
                                 DoScriptText(EMOTE_BREATH, me);
-								Phase = SKADI;
-                    me->SetCanFly(false);
-                    me->Dismount();
-                    if (Creature* pGrauf = me->SummonCreature(CREATURE_GRAUF, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3*IN_MILLISECONDS))
-                    {
-                        pGrauf->GetMotionMaster()->MoveFall();
-                        pGrauf->HandleEmoteCommand(EMOTE_ONESHOT_FLYDEATH);
-                    }
-                    me->GetMotionMaster()->MoveJump(Location[4].GetPositionX(), Location[4].GetPositionY(), Location[4].GetPositionZ(), 5.0f, 10.0f);
-                    me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
-                    DoScriptText(SAY_DRAKE_DEATH, me);
-                    m_uiCrushTimer = 8000;
-                    m_uiPoisonedSpearTimer = 10000;
-                    m_uiWhirlwindTimer = 20000;
-                    me->AI()->AttackStart(SelectTarget(SELECT_TARGET_RANDOM));
                                 m_uiMovementTimer = 2500;
                                 break;
                             case 4:
@@ -426,8 +411,8 @@ public:
         {
             DoScriptText(SAY_DEATH, me);
             Summons.DespawnAll();
-            if (instance)
-                instance->SetData(DATA_SKADI_THE_RUTHLESS_EVENT, DONE);
+            if (m_instance)
+                m_instance->SetData(DATA_SKADI_THE_RUTHLESS_EVENT, DONE);
         }
 
         void KilledUnit(Unit* /*victim*/)
@@ -476,15 +461,15 @@ class go_harpoon_launcher : public GameObjectScript
 public:
     go_harpoon_launcher() : GameObjectScript("go_harpoon_launcher") { }
 
-    bool OnGossipHello(Player* player, GameObject* go)
+    bool OnGossipHello(Player* player, GameObject* pGO)
     {
-        InstanceScript* instance = go->GetInstanceScript();
-        if (!instance)
-            return false;
+        InstanceScript* m_instance = pGO->GetInstanceScript();
+        if (!m_instance) return false;
 
-        if (Creature* pSkadi = Unit::GetCreature(*go, instance->GetData64(DATA_SKADI_THE_RUTHLESS)))
+        if (Creature* pSkadi = Unit::GetCreature((*pGO), m_instance->GetData64(DATA_SKADI_THE_RUTHLESS)))
+        {
             player->CastSpell(pSkadi, SPELL_RAPID_FIRE, true);
-
+        }
         return false;
     }
 

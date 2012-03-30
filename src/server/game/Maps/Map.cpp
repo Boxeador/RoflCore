@@ -407,6 +407,33 @@ void Map::LoadGrid(float x, float y)
     EnsureGridLoaded(Cell(x, y));
 }
 
+void Map::SendInitTransportsInInstance(Player* player)
+{
+    // Hack to send out transports
+    MapManager::TransportMap& tmap = sMapMgr->m_TransportsByInstanceIdMap;
+ 
+    // no transports at map
+    if (tmap.find(player->GetInstanceId()) == tmap.end())
+        return;
+ 
+    UpdateData transData;
+ 
+    MapManager::TransportSet& tset = tmap[player->GetInstanceId()];
+ 
+    for (MapManager::TransportSet::const_iterator i = tset.begin(); i != tset.end(); ++i)
+    {
+        // send data for current transport in other place
+        if ((*i) != player->GetTransport() && (*i)->GetInstanceId() == GetInstanceId())
+        {
+            (*i)->BuildCreateUpdateBlockForPlayer(&transData, player);
+        }
+    }
+ 
+    WorldPacket packet;
+    transData.BuildPacket(&packet);
+    player->GetSession()->SendPacket(&packet);
+}
+
 bool Map::AddPlayerToMap(Player* player)
 {
     CellCoord cellCoord = Trinity::ComputeCellCoord(player->GetPositionX(), player->GetPositionY());
@@ -2376,9 +2403,7 @@ bool InstanceMap::AddPlayerToMap(Player* player)
                         if (LFGDungeonEntry const* randomDungeon = sLFGDungeonStore.LookupEntry(*(sLFGMgr->GetSelectedDungeons(player->GetGUID()).begin())))
 							if (dungeon->map == GetId() && dungeon->difficulty == GetDifficulty() && randomDungeon->type == LFG_TYPE_RANDOM) {
                                 player->CastSpell(player, LFG_SPELL_LUCK_OF_THE_DRAW, true);
-	uint64 gguid = group->GetGUID();
-	LfgState state = sLFGMgr->GetState(gguid);
-							uint8 did = 0;
+								uint8 did = 0;
 		if (player->GetMapId() == 43) {
 		did = 23;
 	} else if (player->GetMapId() == 289) {
@@ -2449,50 +2474,20 @@ bool InstanceMap::AddPlayerToMap(Player* player)
 		did = 71;
 		} else if (player->GetMapId() == 90) {
 		did = 29;
-		} else if (player->GetMapId() == 668) {
-		did = 15;
-		} else if (player->GetMapId() == 309) {
-		did = 15;
-		} else if (player->GetMapId() == 409) {
-		did = 15;
-		} else if (player->GetMapId() == 469) {
-		did = 15;
-		} else if (player->GetMapId() == 509) {
-		did = 15;
-		} else if (player->GetMapId() == 531) {
-		did = 15;
-		} else if (player->GetMapId() == 532) {
-		did = 15;
-		} else if (player->GetMapId() == 544) {
-		did = 15;
-		} else if (player->GetMapId() == 565) {
-		did = 15;
-		} else if (player->GetMapId() == 550) {
-		did = 15;
-		} else if (player->GetMapId() == 548) {
-		did = 15;
-		} else if (player->GetMapId() == 534) {
-		did = 15;
-		} else if (player->GetMapId() == 564) {
-		did = 15;
-		} else if (player->GetMapId() == 568) {
-		did = 15;
-		} else if (player->GetMapId() == 580) {
-		did = 15;
 	} else {
 		did = 80;
 	}
 		if (player->getLevel() > did) {
-
-		} else if (player->HasAura(91084)){
-
-      } else if (player->getLevel() < did && !player->HasAura(91084) && state == LFG_STATE_DUNGEON){
-		player->CastSpell(player, 91084, true);
-	} else {
+		} else {
+    if (player->HasAura(91084)){
+      } else {
+    
 		player->CastSpell(player, 91084, true);
 }
-	  }
+                                //player->CastSpell(player, LFG_SPELL_DUNGEON_COOLDOWN, true);
+		}
 }
+        }
 
         // for normal instances cancel the reset schedule when the
         // first player enters (no players yet)
