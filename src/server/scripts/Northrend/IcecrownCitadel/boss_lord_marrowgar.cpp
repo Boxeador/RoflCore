@@ -111,7 +111,6 @@ class boss_lord_marrowgar : public CreatureScript
             void EnterCombat(Unit* /*who*/)
             {
                 Talk(SAY_AGGRO);
-
                 me->setActive(true);
                 DoZoneInCombat();
                 instance->SetBossState(DATA_LORD_MARROWGAR, IN_PROGRESS);
